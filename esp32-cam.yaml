@@ -1,0 +1,1030 @@
+esphome:
+  name: esp32-cam2
+  friendly_name: ESP32-CAM2
+  on_boot:
+    priority: -100
+    then:
+      - lambda: |-
+          if (id(cam_xclk_mhz) != 20) {
+            camera_config_t config;
+            config.ledc_channel = LEDC_CHANNEL_0;
+            config.ledc_timer   = LEDC_TIMER_0;
+            config.pin_d0       = 5;
+            config.pin_d1       = 18;
+            config.pin_d2       = 19;
+            config.pin_d3       = 21;
+            config.pin_d4       = 36;
+            config.pin_d5       = 39;
+            config.pin_d6       = 34;
+            config.pin_d7       = 35;
+            config.pin_xclk     = 0;
+            config.pin_pclk     = 22;
+            config.pin_vsync    = 25;
+            config.pin_href     = 23;
+            config.pin_sccb_sda = 26;
+            config.pin_sccb_scl = 27;
+            config.pin_pwdn     = 32;
+            config.pin_reset    = -1;
+            config.xclk_freq_hz = id(cam_xclk_mhz) * 1000000;
+            config.pixel_format = PIXFORMAT_JPEG;
+            config.frame_size   = FRAMESIZE_SVGA;
+            config.jpeg_quality = 10;
+            config.fb_count     = 2;
+            config.fb_location  = CAMERA_FB_IN_PSRAM;
+            config.grab_mode    = CAMERA_GRAB_WHEN_EMPTY;
+            esp_camera_deinit();
+            esp_camera_init(&config);
+          }
+
+          sensor_t *s = esp_camera_sensor_get();
+          if (!s) return;
+          s->set_brightness(s,     id(cam_brightness));
+          s->set_contrast(s,       id(cam_contrast));
+          s->set_saturation(s,     id(cam_saturation));
+          s->set_hmirror(s,        id(cam_hmirror));
+          s->set_vflip(s,          id(cam_vflip));
+          s->set_whitebal(s,       id(cam_awb));
+          s->set_gain_ctrl(s,      id(cam_agc));
+          s->set_exposure_ctrl(s,  id(cam_aec));
+          s->set_aec2(s,           id(cam_aec2));
+          s->set_awb_gain(s,       id(cam_awb_gain));
+          s->set_lenc(s,           id(cam_lenc));
+          s->set_raw_gma(s,        id(cam_raw_gma));
+          s->set_dcw(s,            id(cam_dcw));
+          s->set_bpc(s,            id(cam_bpc));
+          s->set_wpc(s,            id(cam_wpc));
+          s->set_quality(s,        id(cam_jpeg_quality));
+          s->set_ae_level(s,       id(cam_ae_level));
+          s->set_aec_value(s,      id(cam_aec_value));
+          s->set_agc_gain(s,       id(cam_agc_gain));
+          s->set_gainceiling(s,    (gainceiling_t)id(cam_gain_ceiling));
+          s->set_special_effect(s, id(cam_special_effect));
+          s->set_wb_mode(s,        id(cam_wb_mode));
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+
+web_server:
+  version: 3
+  sorting_groups:
+    - id: group_image
+      name: "Image"
+      sorting_weight: 1
+    - id: group_exposure
+      name: "Exposure"
+      sorting_weight: 2
+    - id: group_white_balance
+      name: "White Balance"
+      sorting_weight: 3
+    - id: group_orientation
+      name: "Orientation"
+      sorting_weight: 4
+    - id: group_processing
+      name: "Processing"
+      sorting_weight: 5
+    - id: group_camera
+      name: "Camera"
+      sorting_weight: 6
+    - id: group_diagnostics
+      name: "Diagnostics"
+      sorting_weight: 7
+
+captive_portal:
+mdns:
+
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "ESP32-CAM2 Fallback"
+    password: !secret ap_password
+
+psram:
+
+globals:
+  - id: cam_brightness
+    type: int
+    restore_value: true
+    initial_value: '0'
+  - id: cam_contrast
+    type: int
+    restore_value: true
+    initial_value: '0'
+  - id: cam_saturation
+    type: int
+    restore_value: true
+    initial_value: '0'
+  - id: cam_hmirror
+    type: int
+    restore_value: true
+    initial_value: '0'
+  - id: cam_vflip
+    type: int
+    restore_value: true
+    initial_value: '0'
+  - id: cam_awb
+    type: int
+    restore_value: true
+    initial_value: '1'
+  - id: cam_awb_gain
+    type: int
+    restore_value: true
+    initial_value: '1'
+  - id: cam_agc
+    type: int
+    restore_value: true
+    initial_value: '1'
+  - id: cam_aec
+    type: int
+    restore_value: true
+    initial_value: '1'
+  - id: cam_aec2
+    type: int
+    restore_value: true
+    initial_value: '1'
+  - id: cam_lenc
+    type: int
+    restore_value: true
+    initial_value: '1'
+  - id: cam_raw_gma
+    type: int
+    restore_value: true
+    initial_value: '1'
+  - id: cam_dcw
+    type: int
+    restore_value: true
+    initial_value: '1'
+  - id: cam_bpc
+    type: int
+    restore_value: true
+    initial_value: '1'
+  - id: cam_wpc
+    type: int
+    restore_value: true
+    initial_value: '1'
+  - id: cam_jpeg_quality
+    type: int
+    restore_value: true
+    initial_value: '10'
+  - id: cam_ae_level
+    type: int
+    restore_value: true
+    initial_value: '0'
+  - id: cam_aec_value
+    type: int
+    restore_value: true
+    initial_value: '300'
+  - id: cam_agc_gain
+    type: int
+    restore_value: true
+    initial_value: '0'
+  - id: cam_gain_ceiling
+    type: int
+    restore_value: true
+    initial_value: '0'
+  - id: cam_special_effect
+    type: int
+    restore_value: true
+    initial_value: '0'
+  - id: cam_wb_mode
+    type: int
+    restore_value: true
+    initial_value: '0'
+  - id: cam_xclk_mhz
+    type: int
+    restore_value: true
+    initial_value: '20'
+  - id: pending_reboot
+    type: bool
+    restore_value: false
+    initial_value: 'false'
+
+interval:
+  - interval: 5s
+    then:
+      - lambda: |-
+          if (id(pending_reboot)) {
+            id(pending_reboot) = false;
+            global_preferences->sync();
+            delay(200);
+            App.safe_reboot();
+          }
+
+i2c:
+  id: camera_i2c
+  sda: GPIO26
+  scl: GPIO27
+
+esp32_camera:
+  name: "ESP32 Camera"
+  external_clock:
+    pin:
+      number: GPIO0
+      ignore_strapping_warning: true
+    frequency: 20MHz
+  i2c_id: camera_i2c
+  data_pins:
+    - number: GPIO5
+      ignore_strapping_warning: true
+    - GPIO18
+    - GPIO19
+    - GPIO21
+    - GPIO36
+    - GPIO39
+    - GPIO34
+    - GPIO35
+  vsync_pin: GPIO25
+  href_pin: GPIO23
+  pixel_clock_pin: GPIO22
+  power_down_pin: GPIO32
+  resolution: 800x600
+  jpeg_quality: 10
+  vertical_flip: false
+  horizontal_mirror: false
+  idle_framerate: 0.1fps
+
+esp32_camera_web_server:
+  - port: 8080
+    mode: stream
+  - port: 8081
+    mode: snapshot
+
+# ─── Output & Light ───────────────────────────────────────
+
+output:
+  - platform: ledc
+    pin: GPIO4
+    channel: 2
+    id: flash_led
+
+light:
+  - platform: monochromatic
+    output: flash_led
+    name: "Camera Flash"
+    web_server:
+      sorting_group_id: group_camera
+
+# ─── Binary Sensor ────────────────────────────────────────
+
+binary_sensor:
+  - platform: template
+    name: "Reboot Pending"
+    icon: "mdi:timer-sand"
+    entity_category: diagnostic
+    web_server:
+      sorting_group_id: group_diagnostics
+    lambda: |-
+      return id(pending_reboot);
+
+# ─── Buttons ──────────────────────────────────────────────
+
+button:
+  - platform: template
+    name: "Restore Defaults"
+    icon: "mdi:restore"
+    entity_category: config
+    web_server:
+      sorting_group_id: group_diagnostics
+    on_press:
+      then:
+        - lambda: |-
+            id(cam_brightness)     = 0;
+            id(cam_contrast)       = 0;
+            id(cam_saturation)     = 0;
+            id(cam_hmirror)        = 0;
+            id(cam_vflip)          = 0;
+            id(cam_awb)            = 1;
+            id(cam_awb_gain)       = 1;
+            id(cam_agc)            = 1;
+            id(cam_aec)            = 1;
+            id(cam_aec2)           = 1;
+            id(cam_lenc)           = 1;
+            id(cam_raw_gma)        = 1;
+            id(cam_dcw)            = 1;
+            id(cam_bpc)            = 1;
+            id(cam_wpc)            = 1;
+            id(cam_jpeg_quality)   = 10;
+            id(cam_ae_level)       = 0;
+            id(cam_aec_value)      = 300;
+            id(cam_agc_gain)       = 0;
+            id(cam_gain_ceiling)   = 0;
+            id(cam_special_effect) = 0;
+            id(cam_wb_mode)        = 0;
+            id(cam_xclk_mhz)      = 20;
+        - number.set:
+            id: num_brightness
+            value: 0
+        - number.set:
+            id: num_contrast
+            value: 0
+        - number.set:
+            id: num_saturation
+            value: 0
+        - number.set:
+            id: num_jpeg_quality
+            value: 10
+        - number.set:
+            id: num_aec_value
+            value: 300
+        - number.set:
+            id: num_ae_level
+            value: 0
+        - number.set:
+            id: num_agc_gain
+            value: 0
+        - select.set:
+            id: sel_resolution
+            option: "SVGA 800x600"
+        - select.set:
+            id: sel_special_effect
+            option: "None"
+        - select.set:
+            id: sel_gain_ceiling
+            option: "2x"
+        - select.set:
+            id: sel_wb_mode
+            option: "Auto"
+        - select.set:
+            id: sel_xclk
+            option: "20 MHz"
+        - switch.turn_on:
+            id: sw_aec
+        - switch.turn_on:
+            id: sw_aec2
+        - switch.turn_on:
+            id: sw_agc
+        - switch.turn_on:
+            id: sw_awb
+        - switch.turn_on:
+            id: sw_awb_gain
+        - switch.turn_off:
+            id: sw_hmirror
+        - switch.turn_off:
+            id: sw_vflip
+        - switch.turn_on:
+            id: sw_lenc
+        - switch.turn_on:
+            id: sw_raw_gma
+        - switch.turn_on:
+            id: sw_dcw
+        - switch.turn_on:
+            id: sw_bpc
+        - switch.turn_on:
+            id: sw_wpc
+        - switch.turn_off:
+            id: sw_colorbar
+        - lambda: |-
+            global_preferences->sync();
+        - delay: 200ms
+        - lambda: |-
+            id(pending_reboot) = true;
+
+  - platform: template
+    name: "Restart"
+    icon: "mdi:restart"
+    entity_category: config
+    web_server:
+      sorting_group_id: group_diagnostics
+    on_press:
+      then:
+        - lambda: |-
+            id(pending_reboot) = true;
+
+# ─── Numbers ──────────────────────────────────────────────
+
+number:
+  - platform: template
+    name: "Brightness"
+    id: num_brightness
+    icon: "mdi:brightness-5"
+    web_server:
+      sorting_group_id: group_image
+    min_value: -2
+    max_value: 2
+    step: 1
+    initial_value: 0
+    restore_value: true
+    optimistic: true
+    set_action:
+      - globals.set:
+          id: cam_brightness
+          value: !lambda 'return (int)x;'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_brightness(s, (int)x);
+
+  - platform: template
+    name: "Contrast"
+    id: num_contrast
+    icon: "mdi:contrast"
+    web_server:
+      sorting_group_id: group_image
+    min_value: -2
+    max_value: 2
+    step: 1
+    initial_value: 0
+    restore_value: true
+    optimistic: true
+    set_action:
+      - globals.set:
+          id: cam_contrast
+          value: !lambda 'return (int)x;'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_contrast(s, (int)x);
+
+  - platform: template
+    name: "Saturation"
+    id: num_saturation
+    icon: "mdi:palette"
+    web_server:
+      sorting_group_id: group_image
+    min_value: -2
+    max_value: 2
+    step: 1
+    initial_value: 0
+    restore_value: true
+    optimistic: true
+    set_action:
+      - globals.set:
+          id: cam_saturation
+          value: !lambda 'return (int)x;'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_saturation(s, (int)x);
+
+  - platform: template
+    name: "JPEG Quality"
+    id: num_jpeg_quality
+    icon: "mdi:image"
+    web_server:
+      sorting_group_id: group_image
+    min_value: 10
+    max_value: 63
+    step: 1
+    initial_value: 10
+    restore_value: true
+    optimistic: true
+    set_action:
+      - globals.set:
+          id: cam_jpeg_quality
+          value: !lambda 'return (int)x;'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_quality(s, (int)x);
+
+  - platform: template
+    name: "AEC Value"
+    id: num_aec_value
+    icon: "mdi:camera-iris"
+    web_server:
+      sorting_group_id: group_exposure
+    min_value: 0
+    max_value: 1200
+    step: 10
+    initial_value: 300
+    restore_value: true
+    optimistic: true
+    set_action:
+      - globals.set:
+          id: cam_aec_value
+          value: !lambda 'return (int)x;'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_aec_value(s, (int)x);
+
+  - platform: template
+    name: "AE Level"
+    id: num_ae_level
+    icon: "mdi:brightness-6"
+    web_server:
+      sorting_group_id: group_exposure
+    min_value: -2
+    max_value: 2
+    step: 1
+    initial_value: 0
+    restore_value: true
+    optimistic: true
+    set_action:
+      - globals.set:
+          id: cam_ae_level
+          value: !lambda 'return (int)x;'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_ae_level(s, (int)x);
+
+  - platform: template
+    name: "AGC Gain"
+    id: num_agc_gain
+    icon: "mdi:signal"
+    web_server:
+      sorting_group_id: group_exposure
+    min_value: 0
+    max_value: 30
+    step: 1
+    initial_value: 0
+    restore_value: true
+    optimistic: true
+    set_action:
+      - globals.set:
+          id: cam_agc_gain
+          value: !lambda 'return (int)x;'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_agc_gain(s, (int)x);
+
+# ─── Selects ──────────────────────────────────────────────
+
+select:
+  - platform: template
+    name: "Resolution"
+    id: sel_resolution
+    icon: "mdi:fit-to-screen"
+    web_server:
+      sorting_group_id: group_image
+    options:
+      - "QVGA 320x240"
+      - "VGA 640x480"
+      - "SVGA 800x600"
+      - "XGA 1024x768"
+      - "SXGA 1280x1024"
+      - "UXGA 1600x1200"
+    initial_option: "SVGA 800x600"
+    restore_value: true
+    optimistic: true
+    set_action:
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (!s) return;
+          int res = 9;
+          if (x == "QVGA 320x240")   res = 5;
+          if (x == "VGA 640x480")    res = 8;
+          if (x == "SVGA 800x600")   res = 9;
+          if (x == "XGA 1024x768")   res = 10;
+          if (x == "SXGA 1280x1024") res = 12;
+          if (x == "UXGA 1600x1200") res = 13;
+          s->set_framesize(s, (framesize_t)res);
+
+  - platform: template
+    name: "Special Effect"
+    id: sel_special_effect
+    icon: "mdi:magic-staff"
+    web_server:
+      sorting_group_id: group_image
+    options:
+      - "None"
+      - "Negative"
+      - "Grayscale"
+      - "Red Tint"
+      - "Green Tint"
+      - "Blue Tint"
+      - "Sepia"
+    initial_option: "None"
+    restore_value: true
+    optimistic: true
+    set_action:
+      - globals.set:
+          id: cam_special_effect
+          value: !lambda |-
+            if (x == "Negative")   return 1;
+            if (x == "Grayscale")  return 2;
+            if (x == "Red Tint")   return 3;
+            if (x == "Green Tint") return 4;
+            if (x == "Blue Tint")  return 5;
+            if (x == "Sepia")      return 6;
+            return 0;
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (!s) return;
+          int effect = 0;
+          if (x == "Negative")   effect = 1;
+          if (x == "Grayscale")  effect = 2;
+          if (x == "Red Tint")   effect = 3;
+          if (x == "Green Tint") effect = 4;
+          if (x == "Blue Tint")  effect = 5;
+          if (x == "Sepia")      effect = 6;
+          s->set_special_effect(s, effect);
+
+  - platform: template
+    name: "Gain Ceiling"
+    id: sel_gain_ceiling
+    icon: "mdi:arrow-collapse-up"
+    web_server:
+      sorting_group_id: group_exposure
+    options:
+      - "2x"
+      - "4x"
+      - "8x"
+      - "16x"
+      - "32x"
+      - "64x"
+      - "128x"
+    initial_option: "2x"
+    restore_value: true
+    optimistic: true
+    set_action:
+      - globals.set:
+          id: cam_gain_ceiling
+          value: !lambda |-
+            if (x == "4x")   return 1;
+            if (x == "8x")   return 2;
+            if (x == "16x")  return 3;
+            if (x == "32x")  return 4;
+            if (x == "64x")  return 5;
+            if (x == "128x") return 6;
+            return 0;
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (!s) return;
+          int gc = 0;
+          if (x == "4x")   gc = 1;
+          if (x == "8x")   gc = 2;
+          if (x == "16x")  gc = 3;
+          if (x == "32x")  gc = 4;
+          if (x == "64x")  gc = 5;
+          if (x == "128x") gc = 6;
+          s->set_gainceiling(s, (gainceiling_t)gc);
+
+  - platform: template
+    name: "White Balance Mode"
+    id: sel_wb_mode
+    icon: "mdi:white-balance-auto"
+    web_server:
+      sorting_group_id: group_white_balance
+    options:
+      - "Auto"
+      - "Sunny"
+      - "Cloudy"
+      - "Office"
+      - "Home"
+    initial_option: "Auto"
+    restore_value: true
+    optimistic: true
+    set_action:
+      - globals.set:
+          id: cam_wb_mode
+          value: !lambda |-
+            if (x == "Sunny")  return 1;
+            if (x == "Cloudy") return 2;
+            if (x == "Office") return 3;
+            if (x == "Home")   return 4;
+            return 0;
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (!s) return;
+          int mode = 0;
+          if (x == "Sunny")  mode = 1;
+          if (x == "Cloudy") mode = 2;
+          if (x == "Office") mode = 3;
+          if (x == "Home")   mode = 4;
+          s->set_wb_mode(s, mode);
+
+  - platform: template
+    name: "Clock Frequency"
+    id: sel_xclk
+    icon: "mdi:sine-wave"
+    entity_category: config
+    web_server:
+      sorting_group_id: group_diagnostics
+    options:
+      - "8 MHz"
+      - "9 MHz"
+      - "10 MHz"
+      - "11 MHz"
+      - "12 MHz"
+      - "13 MHz"
+      - "14 MHz"
+      - "15 MHz"
+      - "16 MHz"
+      - "17 MHz"
+      - "18 MHz"
+      - "19 MHz"
+      - "20 MHz"
+      - "21 MHz"
+      - "22 MHz"
+      - "23 MHz"
+      - "24 MHz"
+      - "25 MHz"
+      - "26 MHz"
+      - "27 MHz"
+      - "28 MHz"
+      - "29 MHz"
+      - "30 MHz"
+    initial_option: "20 MHz"
+    restore_value: true
+    optimistic: true
+    set_action:
+      - globals.set:
+          id: cam_xclk_mhz
+          value: !lambda 'return (int)atoi(x.c_str());'
+      - globals.set:
+          id: pending_reboot
+          value: 'true'
+
+# ─── Switches ─────────────────────────────────────────────
+
+switch:
+  - platform: template
+    name: "Auto Exposure Control"
+    id: sw_aec
+    icon: "mdi:camera-iris"
+    web_server:
+      sorting_group_id: group_exposure
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    turn_on_action:
+      - globals.set:
+          id: cam_aec
+          value: '1'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_exposure_ctrl(s, 1);
+    turn_off_action:
+      - globals.set:
+          id: cam_aec
+          value: '0'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_exposure_ctrl(s, 0);
+
+  - platform: template
+    name: "AEC DSP"
+    id: sw_aec2
+    icon: "mdi:chip"
+    web_server:
+      sorting_group_id: group_exposure
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    turn_on_action:
+      - globals.set:
+          id: cam_aec2
+          value: '1'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_aec2(s, 1);
+    turn_off_action:
+      - globals.set:
+          id: cam_aec2
+          value: '0'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_aec2(s, 0);
+
+  - platform: template
+    name: "Auto Gain Control"
+    id: sw_agc
+    icon: "mdi:signal"
+    web_server:
+      sorting_group_id: group_exposure
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    turn_on_action:
+      - globals.set:
+          id: cam_agc
+          value: '1'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_gain_ctrl(s, 1);
+    turn_off_action:
+      - globals.set:
+          id: cam_agc
+          value: '0'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_gain_ctrl(s, 0);
+
+  - platform: template
+    name: "Auto White Balance"
+    id: sw_awb
+    icon: "mdi:white-balance-auto"
+    web_server:
+      sorting_group_id: group_white_balance
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    turn_on_action:
+      - globals.set:
+          id: cam_awb
+          value: '1'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_whitebal(s, 1);
+    turn_off_action:
+      - globals.set:
+          id: cam_awb
+          value: '0'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_whitebal(s, 0);
+
+  - platform: template
+    name: "AWB Gain"
+    id: sw_awb_gain
+    icon: "mdi:white-balance-sunny"
+    web_server:
+      sorting_group_id: group_white_balance
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    turn_on_action:
+      - globals.set:
+          id: cam_awb_gain
+          value: '1'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_awb_gain(s, 1);
+    turn_off_action:
+      - globals.set:
+          id: cam_awb_gain
+          value: '0'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_awb_gain(s, 0);
+
+  - platform: template
+    name: "Horizontal Mirror"
+    id: sw_hmirror
+    icon: "mdi:flip-horizontal"
+    web_server:
+      sorting_group_id: group_orientation
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    turn_on_action:
+      - globals.set:
+          id: cam_hmirror
+          value: '1'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_hmirror(s, 1);
+    turn_off_action:
+      - globals.set:
+          id: cam_hmirror
+          value: '0'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_hmirror(s, 0);
+
+  - platform: template
+    name: "Vertical Flip"
+    id: sw_vflip
+    icon: "mdi:flip-vertical"
+    web_server:
+      sorting_group_id: group_orientation
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    turn_on_action:
+      - globals.set:
+          id: cam_vflip
+          value: '1'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_vflip(s, 1);
+    turn_off_action:
+      - globals.set:
+          id: cam_vflip
+          value: '0'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_vflip(s, 0);
+
+  - platform: template
+    name: "Lens Correction"
+    id: sw_lenc
+    icon: "mdi:camera-lens"
+    web_server:
+      sorting_group_id: group_processing
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    turn_on_action:
+      - globals.set:
+          id: cam_lenc
+          value: '1'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_lenc(s, 1);
+    turn_off_action:
+      - globals.set:
+          id: cam_lenc
+          value: '0'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_lenc(s, 0);
+
+  - platform: template
+    name: "Raw Gamma"
+    id: sw_raw_gma
+    icon: "mdi:gamma"
+    web_server:
+      sorting_group_id: group_processing
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    turn_on_action:
+      - globals.set:
+          id: cam_raw_gma
+          value: '1'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_raw_gma(s, 1);
+    turn_off_action:
+      - globals.set:
+          id: cam_raw_gma
+          value: '0'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_raw_gma(s, 0);
+
+  - platform: template
+    name: "Downsize Crop"
+    id: sw_dcw
+    icon: "mdi:crop"
+    web_server:
+      sorting_group_id: group_processing
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    turn_on_action:
+      - globals.set:
+          id: cam_dcw
+          value: '1'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_dcw(s, 1);
+    turn_off_action:
+      - globals.set:
+          id: cam_dcw
+          value: '0'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_dcw(s, 0);
+
+  - platform: template
+    name: "Black Pixel Cancel"
+    id: sw_bpc
+    icon: "mdi:square-off-outline"
+    web_server:
+      sorting_group_id: group_processing
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    turn_on_action:
+      - globals.set:
+          id: cam_bpc
+          value: '1'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_bpc(s, 1);
+    turn_off_action:
+      - globals.set:
+          id: cam_bpc
+          value: '0'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_bpc(s, 0);
+
+  - platform: template
+    name: "White Pixel Cancel"
+    id: sw_wpc
+    icon: "mdi:square-outline"
+    web_server:
+      sorting_group_id: group_processing
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    turn_on_action:
+      - globals.set:
+          id: cam_wpc
+          value: '1'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_wpc(s, 1);
+    turn_off_action:
+      - globals.set:
+          id: cam_wpc
+          value: '0'
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_wpc(s, 0);
+
+  - platform: template
+    name: "Color Bar Test"
+    id: sw_colorbar
+    icon: "mdi:television-play"
+    web_server:
+      sorting_group_id: group_diagnostics
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    turn_on_action:
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_colorbar(s, 1);
+    turn_off_action:
+      - lambda: |-
+          sensor_t *s = esp_camera_sensor_get();
+          if (s) s->set_colorbar(s, 0);
