@@ -555,10 +555,17 @@ select:
     web_server:
       sorting_group_id: group_image
     options:
+      - "QQVGA 160x120"
+      - "QCIF 176x144"
+      - "HQVGA 240x176"
+      - "240x240"
       - "QVGA 320x240"
+      - "CIF 400x296"
+      - "HVGA 480x320"
       - "VGA 640x480"
       - "SVGA 800x600"
       - "XGA 1024x768"
+      - "HD 1280x720"
       - "SXGA 1280x1024"
       - "UXGA 1600x1200"
     initial_option: "SVGA 800x600"
@@ -568,14 +575,22 @@ select:
       - lambda: |-
           sensor_t *s = esp_camera_sensor_get();
           if (!s) return;
-          int res = 9;
-          if (x == "QVGA 320x240")   res = 5;
-          if (x == "VGA 640x480")    res = 8;
-          if (x == "SVGA 800x600")   res = 9;
-          if (x == "XGA 1024x768")   res = 10;
-          if (x == "SXGA 1280x1024") res = 12;
-          if (x == "UXGA 1600x1200") res = 13;
+          int res = 10;
+          if (x == "QQVGA 160x120")  res = 1;
+          if (x == "QCIF 176x144")   res = 3;
+          if (x == "HQVGA 240x176")  res = 4;
+          if (x == "240x240")        res = 5;
+          if (x == "QVGA 320x240")   res = 6;
+          if (x == "CIF 400x296")    res = 8;
+          if (x == "HVGA 480x320")   res = 9;
+          if (x == "VGA 640x480")    res = 10;
+          if (x == "SVGA 800x600")   res = 11;
+          if (x == "XGA 1024x768")   res = 12;
+          if (x == "HD 1280x720")    res = 13;
+          if (x == "SXGA 1280x1024") res = 14;
+          if (x == "UXGA 1600x1200") res = 15;
           s->set_framesize(s, (framesize_t)res);
+
 
   - platform: template
     name: "Special Effect"
